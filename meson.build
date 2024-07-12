@@ -1,4 +1,4 @@
-project('hello_triangle', 'c', 'cpp',
+project('cube_renderer', 'c', 'cpp',
   version: '1.0',
   default_options: ['warning_level=3'])
 
@@ -27,7 +27,7 @@ xdg_private_code = custom_target('xdg-shell-protocol.c',
   command: [wayland_scanner, 'private-code', '@INPUT@', '@OUTPUT@']
 )
 
-executable('hello-triangle', ['hello-triangle.c', 'glm_wrapper.cpp'],
+executable('cube-renderer', ['cube-renderer.c', 'glm_wrapper.cpp'],
   dependencies: [egl_dep, glesv2_dep, wayland_client_dep, wayland_egl_dep, glm_dep],
   sources: [xdg_client_header, xdg_private_code]
 )
