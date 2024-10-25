@@ -6,6 +6,7 @@ dependencies = [
     dependency('egl'),
     dependency('glesv2'),
     dependency('libdrm'),
+    dependency('glm'),
     cc.find_library('m', required : false)
 ]
 

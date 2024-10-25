@@ -32,21 +32,6 @@
 #include "common.h"
 #include "drm-common.h"
 
-WEAK union gbm_bo_handle
-gbm_bo_get_handle_for_plane(struct gbm_bo *bo, int plane);
-
-WEAK uint64_t
-gbm_bo_get_modifier(struct gbm_bo *bo);
-
-WEAK int
-gbm_bo_get_plane_count(struct gbm_bo *bo);
-
-WEAK uint32_t
-gbm_bo_get_stride_for_plane(struct gbm_bo *bo, int plane);
-
-WEAK uint32_t
-gbm_bo_get_offset(struct gbm_bo *bo, int plane);
-
 static void
 drm_fb_destroy_callback(struct gbm_bo *bo, void *data)
 {
@@ -307,23 +292,7 @@ int init_drm(struct drm *drm, const char *device, const char *mode_str,
 		return -1;
 	}
 
-	/* find user requested mode: */
-	if (mode_str && *mode_str) {
-		for (i = 0; i < connector->count_modes; i++) {
-			drmModeModeInfo *current_mode = &connector->modes[i];
-
-			if (strcmp(current_mode->name, mode_str) == 0) {
-				if (vrefresh == 0 || current_mode->vrefresh == vrefresh) {
-					drm->mode = current_mode;
-					break;
-				}
-			}
-		}
-		if (!drm->mode)
-			printf("requested mode not found, using default mode!\n");
-	}
-
-	/* find preferred mode or the highest resolution mode: */
+	// /* find preferred mode or the highest resolution mode: */
 	if (!drm->mode) {
 		for (i = 0, area = 0; i < connector->count_modes; i++) {
 			drmModeModeInfo *current_mode = &connector->modes[i];
@@ -341,80 +310,16 @@ int init_drm(struct drm *drm, const char *device, const char *mode_str,
 		}
 	}
 
-	if (!drm->mode) {
-		printf("could not find mode!\n");
+	int32_t crtc_id = find_crtc_for_connector(drm, resources, connector);
+	if (crtc_id == -1) {
+		printf("no crtc found!\n");
 		return -1;
 	}
-
-	/* find encoder: */
-	for (i = 0; i < resources->count_encoders; i++) {
-		encoder = drmModeGetEncoder(drm->fd, resources->encoders[i]);
-		if (encoder->encoder_id == connector->encoder_id)
-			break;
-		drmModeFreeEncoder(encoder);
-		encoder = NULL;
-	}
-
-	if (encoder) {
-		drm->crtc_id = encoder->crtc_id;
-	} else {
-		int32_t crtc_id = find_crtc_for_connector(drm, resources, connector);
-		if (crtc_id == -1) {
-			printf("no crtc found!\n");
-			return -1;
-		}
-
-		drm->crtc_id = crtc_id;
-	}
-
-	for (i = 0; i < resources->count_crtcs; i++) {
-		if (resources->crtcs[i] == drm->crtc_id) {
-			drm->crtc_index = i;
-			break;
-		}
-	}
+	drm->crtc_id = crtc_id;
 
 	drmModeFreeResources(resources);
 
 	drm->connector_id = connector->connector_id;
-	drm->count = count;
-
-	return 0;
-}
-
-int init_drm_render(struct drm *drm, const char *device, const char *mode_str, unsigned int count)
-{
-	int width, height;
-	drmModeModeInfo *mode;
-
-	if (!mode_str)
-		return -1;
-
-	if (sscanf(mode_str, "%dx%d", &width, &height) != 2)
-		return -1;
-
-	if (device) {
-		drm->fd = open(device, O_RDWR);
-	} else {
-		drm->fd = find_drm_render_device();
-	}
-
-	if (drm->fd < 0) {
-		printf("could not open drm device\n");
-		return -1;
-	}
-
-	mode = malloc(sizeof(*mode));
-	if (!mode) {
-		close(drm->fd);
-		drm->fd = -1;
-		return -1;
-	}
-
-	mode->hdisplay = width;
-	mode->vdisplay = height;
-	drm->mode = mode;
-
 	drm->count = count;
 
 	return 0;

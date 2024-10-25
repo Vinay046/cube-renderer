@@ -133,16 +133,6 @@ static int legacy_run(const struct gbm *gbm, const struct egl *egl)
 			drmHandleEvent(drm.fd, &evctx);
 		}
 
-		// cur_time = get_time_ns();
-		// if (cur_time > (report_time + 2 * NSEC_PER_SEC)) {
-		// 	double elapsed_time = cur_time - start_time;
-		// 	double secs = elapsed_time / (double)NSEC_PER_SEC;
-		// 	unsigned frames = i - 1;  /* first frame ignored */
-		// 	printf("Rendered %u frames in %f sec (%f fps)\n",
-		// 		frames, secs, (double)frames/secs);
-		// 	report_time = cur_time;
-		// }
-
 		/* release last buffer to render on again: */
 		if (gbm->surface) {
 			gbm_surface_release_buffer(gbm->surface, bo);

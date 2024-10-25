@@ -26,7 +26,7 @@ int main()
         printf("failed to initialize DRM\n");
         return -1;
     }
-    gbm = init_gbm(drm->fd, drm->mode->hdisplay, drm->mode->vdisplay, format, modifier, false);
+    gbm = init_gbm(drm->fd, drm->mode->hdisplay, drm->mode->vdisplay, format, modifier);
     if(!gbm) {
         printf("failed to initialize GBM\n");
         return -1;

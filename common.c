@@ -38,60 +38,6 @@
 
 static struct gbm gbm;
 
-WEAK struct gbm_surface *
-gbm_surface_create_with_modifiers(struct gbm_device *gbm,
-                                  uint32_t width, uint32_t height,
-                                  uint32_t format,
-                                  const uint64_t *modifiers,
-                                  const unsigned int count);
-WEAK struct gbm_bo *
-gbm_bo_create_with_modifiers(struct gbm_device *gbm,
-                             uint32_t width, uint32_t height,
-                             uint32_t format,
-                             const uint64_t *modifiers,
-                             const unsigned int count);
-
-static struct gbm_bo * init_bo(uint64_t modifier)
-{
-	struct gbm_bo *bo = NULL;
-
-	if (gbm_bo_create_with_modifiers) {
-		bo = gbm_bo_create_with_modifiers(gbm.dev,
-						  gbm.width, gbm.height,
-						  gbm.format,
-						  &modifier, 1);
-	}
-
-	if (!bo) {
-		if (modifier != DRM_FORMAT_MOD_LINEAR) {
-			fprintf(stderr, "Modifiers requested but support isn't available\n");
-			return NULL;
-		}
-
-		bo = gbm_bo_create(gbm.dev,
-				   gbm.width, gbm.height,
-				   gbm.format,
-				   GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
-	}
-
-	if (!bo) {
-		printf("failed to create gbm bo\n");
-		return NULL;
-	}
-
-	return bo;
-}
-
-static struct gbm * init_surfaceless(uint64_t modifier)
-{
-	for (unsigned i = 0; i < ARRAY_SIZE(gbm.bos); i++) {
-		gbm.bos[i] = init_bo(modifier);
-		if (!gbm.bos[i])
-			return NULL;
-	}
-	return &gbm;
-}
-
 static struct gbm * init_surface(uint64_t modifier)
 {
 	if (gbm_surface_create_with_modifiers) {
@@ -123,7 +69,7 @@ static struct gbm * init_surface(uint64_t modifier)
 }
 
 const struct gbm * init_gbm(int drm_fd, int w, int h, uint32_t format,
-		uint64_t modifier, bool surfaceless)
+		uint64_t modifier)
 {
 	gbm.dev = gbm_create_device(drm_fd);
 	if (!gbm.dev)
@@ -134,9 +80,6 @@ const struct gbm * init_gbm(int drm_fd, int w, int h, uint32_t format,
 
 	gbm.width = w;
 	gbm.height = h;
-
-	if (surfaceless)
-		return init_surfaceless(modifier);
 
 	return init_surface(modifier);
 }
@@ -351,29 +294,6 @@ int init_egl(struct egl *egl, const struct gbm *gbm, int samples)
 		return -1;
 	}
 
-	egl_exts_dpy = eglQueryString(egl->display, EGL_EXTENSIONS);
-	get_proc_dpy(EGL_KHR_image_base, eglCreateImageKHR);
-	get_proc_dpy(EGL_KHR_image_base, eglDestroyImageKHR);
-	get_proc_dpy(EGL_KHR_fence_sync, eglCreateSyncKHR);
-	get_proc_dpy(EGL_KHR_fence_sync, eglDestroySyncKHR);
-	get_proc_dpy(EGL_KHR_fence_sync, eglWaitSyncKHR);
-	get_proc_dpy(EGL_KHR_fence_sync, eglClientWaitSyncKHR);
-	get_proc_dpy(EGL_ANDROID_native_fence_sync, eglDupNativeFenceFDANDROID);
-
-	egl->modifiers_supported = has_ext(egl_exts_dpy,
-					   "EGL_EXT_image_dma_buf_import_modifiers");
-
-	printf("Using display %p with EGL version %d.%d\n",
-			egl->display, major, minor);
-
-	printf("===================================\n");
-	printf("EGL information:\n");
-	printf("  version: \"%s\"\n", eglQueryString(egl->display, EGL_VERSION));
-	printf("  vendor: \"%s\"\n", eglQueryString(egl->display, EGL_VENDOR));
-	printf("  client extensions: \"%s\"\n", egl_exts_client);
-	printf("  display extensions: \"%s\"\n", egl_exts_dpy);
-	printf("===================================\n");
-
 	if (!eglBindAPI(EGL_OPENGL_ES_API)) {
 		printf("failed to bind api EGL_OPENGL_ES_API\n");
 		return -1;
@@ -406,28 +326,7 @@ int init_egl(struct egl *egl, const struct gbm *gbm, int samples)
 	/* connect the context to the surface */
 	eglMakeCurrent(egl->display, egl->surface, egl->surface, egl->context);
 
-	gl_exts = (char *) glGetString(GL_EXTENSIONS);
-	printf("OpenGL ES 2.x information:\n");
-	printf("  version: \"%s\"\n", glGetString(GL_VERSION));
-	printf("  shading language version: \"%s\"\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
-	printf("  vendor: \"%s\"\n", glGetString(GL_VENDOR));
-	printf("  renderer: \"%s\"\n", glGetString(GL_RENDERER));
-	printf("  extensions: \"%s\"\n", gl_exts);
-	printf("===================================\n");
-
 	get_proc_gl(GL_OES_EGL_image, glEGLImageTargetTexture2DOES);
-
-	get_proc_gl(GL_AMD_performance_monitor, glGetPerfMonitorGroupsAMD);
-	get_proc_gl(GL_AMD_performance_monitor, glGetPerfMonitorCountersAMD);
-	get_proc_gl(GL_AMD_performance_monitor, glGetPerfMonitorGroupStringAMD);
-	get_proc_gl(GL_AMD_performance_monitor, glGetPerfMonitorCounterStringAMD);
-	get_proc_gl(GL_AMD_performance_monitor, glGetPerfMonitorCounterInfoAMD);
-	get_proc_gl(GL_AMD_performance_monitor, glGenPerfMonitorsAMD);
-	get_proc_gl(GL_AMD_performance_monitor, glDeletePerfMonitorsAMD);
-	get_proc_gl(GL_AMD_performance_monitor, glSelectPerfMonitorCountersAMD);
-	get_proc_gl(GL_AMD_performance_monitor, glBeginPerfMonitorAMD);
-	get_proc_gl(GL_AMD_performance_monitor, glEndPerfMonitorAMD);
-	get_proc_gl(GL_AMD_performance_monitor, glGetPerfMonitorCounterDataAMD);
 
 	if (!gbm->surface) {
 		for (unsigned i = 0; i < ARRAY_SIZE(gbm->bos); i++) {
@@ -529,10 +428,3 @@ int link_program(unsigned program)
 
 	return 0;
 }
-
-// int64_t get_time_ns(void)
-// {
-// 	struct timespec tv;
-// 	clock_gettime(CLOCK_MONOTONIC, &tv);
-// 	return tv.tv_nsec + tv.tv_sec * NSEC_PER_SEC;
-// }
