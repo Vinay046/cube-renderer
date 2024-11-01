@@ -131,19 +131,6 @@ struct egl {
 	PFNEGLCLIENTWAITSYNCKHRPROC eglClientWaitSyncKHR;
 	PFNEGLDUPNATIVEFENCEFDANDROIDPROC eglDupNativeFenceFDANDROID;
 
-	/* AMD_performance_monitor */
-	PFNGLGETPERFMONITORGROUPSAMDPROC         glGetPerfMonitorGroupsAMD;
-	PFNGLGETPERFMONITORCOUNTERSAMDPROC       glGetPerfMonitorCountersAMD;
-	PFNGLGETPERFMONITORGROUPSTRINGAMDPROC    glGetPerfMonitorGroupStringAMD;
-	PFNGLGETPERFMONITORCOUNTERSTRINGAMDPROC  glGetPerfMonitorCounterStringAMD;
-	PFNGLGETPERFMONITORCOUNTERINFOAMDPROC    glGetPerfMonitorCounterInfoAMD;
-	PFNGLGENPERFMONITORSAMDPROC              glGenPerfMonitorsAMD;
-	PFNGLDELETEPERFMONITORSAMDPROC           glDeletePerfMonitorsAMD;
-	PFNGLSELECTPERFMONITORCOUNTERSAMDPROC    glSelectPerfMonitorCountersAMD;
-	PFNGLBEGINPERFMONITORAMDPROC             glBeginPerfMonitorAMD;
-	PFNGLENDPERFMONITORAMDPROC               glEndPerfMonitorAMD;
-	PFNGLGETPERFMONITORCOUNTERDATAAMDPROC    glGetPerfMonitorCounterDataAMD;
-
 	bool modifiers_supported;
 
 	void (*draw)(unsigned i);
@@ -174,5 +161,7 @@ enum mode {
 };
 
 const struct egl * init_cube_smooth(const struct gbm *gbm, int samples);
+
+const struct egl * init_hello_triange(const struct gbm *gbm, int samples);
 
 #endif /* _COMMON_H */

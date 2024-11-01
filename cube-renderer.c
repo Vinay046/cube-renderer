@@ -31,7 +31,7 @@ int main()
         printf("failed to initialize GBM\n");
         return -1;
     }
-    egl = init_cube_smooth(gbm, samples);
+    egl = init_hello_triange(gbm, samples);
     glClearColor(0.0, 0.0, 0.0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT);
 
