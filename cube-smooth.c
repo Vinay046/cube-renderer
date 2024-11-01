@@ -39,15 +39,28 @@ static struct {
 	GLuint positionsoffset, colorsoffset, normalsoffset;
 } gl;
 
+// GLfloat vertices[] = {
+// 	// Positions       // Colors
+// 		0.0f,  1.0f, 0.0f,  1.0f, 0.0f, 0.0f,  // Top vertex (red)
+// 	   -1.0f, -1.0f, 0.0f,  1.0f, 0.0f, 0.0f,  // Bottom-left vertex (green)
+// 		1.0f, -1.0f, 0.0f,  1.0f, 0.0f, 0.0f   // Bottom-right vertex (blue)
+// };
+
 GLfloat vertices[] = {
-	// Positions       // Colors
-		0.0f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  // Top vertex (red)
-	   -0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  // Bottom-left vertex (green)
-		0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f   // Bottom-right vertex (blue)
+        // Positions          // Colors
+	// First triangle
+	-0.5f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  // Top-left
+	-0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  // Bottom-left
+	0.5f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  // Top-right
+	// Second triangle
+		0.5f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  // Top-right
+	-0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  // Bottom-left
+		0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f   // Bottom-right
 };
 
 GLuint indices[] = {
-	0, 1, 2  // First triangle
+	0, 1, 2,  // First triangle
+	3, 4, 5   // Second triangle
 };
 
 static const GLfloat vVertices[] = {
@@ -189,9 +202,10 @@ static const char *triangle_vertex_shader_source =
 		"#version 300 es\n"
 		"in vec3 vPosition;\n"
 		"in vec3 vColor;\n"
+		"uniform mat4 projection;\n"  // Add projection matrix uniform
 		"out vec3 fColor;\n"
 		"void main() {\n"
-		"    gl_Position = vec4(vPosition, 1.0);\n"
+		"    gl_Position = projection * vec4(vPosition, 1.0);\n"  // Apply projection matrix
 		"    fColor = vColor;\n"
 		"}\n";
 
@@ -207,9 +221,24 @@ static const char *triangle_fragment_shader_source =
 static void draw_hello_triangle(unsigned i)
 {
 	glClearColor(0.0, 0.0, 0.0, 1.0);
+
+	ESMatrix modelview;
+	esMatrixLoadIdentity(&modelview);
+	esTranslate(&modelview, 0.0f, 0.0f, -8.0f);
+
+	ESMatrix projection;
+	esMatrixLoadIdentity(&projection);
+	esFrustum(&projection, -2.8f, +2.8f, -2.8f * gl.aspect, +2.8f * gl.aspect, 6.0f, 10.0f);
+
+	ESMatrix modelviewprojection;
+	esMatrixLoadIdentity(&modelviewprojection);
+	esMatrixMultiply(&modelviewprojection, &modelview, &projection);
+
+	glUniformMatrix4fv(gl.modelviewprojectionmatrix, 1, GL_FALSE, &modelviewprojection.m[0][0]);
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
 static void draw_cube_smooth(unsigned i)
@@ -278,6 +307,8 @@ const struct egl * init_hello_triange(const struct gbm *gbm, int samples)
 		return NULL;
 
 	glUseProgram(gl.program);
+
+	gl.modelviewprojectionmatrix = glGetUniformLocation(gl.program, "projection");
 
 	glViewport(0, 0, gbm->width, gbm->height);
 
